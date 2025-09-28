@@ -6,12 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 import os, requests, time
 
 # =======================
-# Info de versão (debug)
-# =======================
-st.write("🚀 Versão DEBUG carregada do GitHub")
-
-# =======================
-# Caminho absoluto seguro
+# CAMINHO BASE
 # =======================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FILE_NAME = "df_join.parquet"
@@ -20,14 +15,13 @@ FILE_PATH = os.path.join(BASE_DIR, FILE_NAME)
 FILE_URL = "https://github.com/pedrolunardia/modelodecision/releases/download/v1.0/df_join.parquet"
 
 # =======================
-# Função para download
+# DOWNLOAD BASE
 # =======================
 def download_base(file_path=FILE_PATH, url=FILE_URL, max_retries=3, wait=5):
     """Baixa o arquivo da release do GitHub se não existir localmente."""
     if not os.path.exists(file_path):
         for attempt in range(1, max_retries + 1):
             try:
-                st.info(f"📥 Baixando base de dados (tentativa {attempt}/{max_retries})...")
                 r = requests.get(url, stream=True, timeout=60)
                 r.raise_for_status()
                 with open(file_path, "wb") as f:
@@ -37,37 +31,25 @@ def download_base(file_path=FILE_PATH, url=FILE_URL, max_retries=3, wait=5):
                 # valida se o arquivo tem tamanho razoável (>1MB)
                 if os.path.getsize(file_path) < 1_000_000:
                     raise Exception("Arquivo baixado está muito pequeno, possível falha no download")
-                st.success("✅ Base de dados baixada com sucesso!")
                 return
-            except Exception as e:
-                st.warning(f"Tentativa {attempt} falhou: {e}")
+            except Exception:
                 time.sleep(wait)
         st.error("❌ Não foi possível baixar a base de dados do GitHub.")
         st.stop()
 
 # =======================
-# Download + Debug
+# DOWNLOAD E LEITURA
 # =======================
 download_base()
-
-if not os.path.exists(FILE_PATH):
-    st.error(f"Arquivo {FILE_PATH} não encontrado depois do download.")
-    st.stop()
-else:
-    size_mb = os.path.getsize(FILE_PATH) / 1e6
-    st.write(f"Tamanho do arquivo baixado: {size_mb:.2f} MB")
-    with open(FILE_PATH, "rb") as _f:
-        signature = _f.read(4)
-    st.write("Assinatura do arquivo:", signature)
-
-# =======================
-# MODELO E BASE
-# =======================
-modelo = joblib.load(os.path.join(BASE_DIR, "modelo.pkl"))
 df_join = pd.read_parquet(FILE_PATH)
 
 # =======================
-# UTIL: barra HTML
+# MODELO
+# =======================
+modelo = joblib.load(os.path.join(BASE_DIR, "modelo.pkl"))
+
+# =======================
+# BARRA
 # =======================
 def bar_html(pct: float) -> str:
     pct = float(pct)
@@ -88,7 +70,7 @@ def bar_html(pct: float) -> str:
     )
 
 # =======================
-# UI
+# TELA
 # =======================
 st.title("🎯 Decision: te apoia nas melhores decisões")
 st.write("Selecione uma vaga e visualize os candidatos mais bem ranqueados pela Decision!")
