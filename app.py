@@ -3,20 +3,75 @@ import pandas as pd
 import numpy as np
 import joblib
 from sklearn.preprocessing import LabelEncoder
+import os, requests, time
+
+# =======================
+# Info de versão (debug)
+# =======================
+st.write("🚀 Versão DEBUG carregada do GitHub")
+
+# =======================
+# Caminho absoluto seguro
+# =======================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = "df_join.parquet"
+FILE_PATH = os.path.join(BASE_DIR, FILE_NAME)
+
+FILE_URL = "https://github.com/pedrolunardia/modelodecision/releases/download/v1.0/df_join.parquet"
+
+# =======================
+# Função para download
+# =======================
+def download_base(file_path=FILE_PATH, url=FILE_URL, max_retries=3, wait=5):
+    """Baixa o arquivo da release do GitHub se não existir localmente."""
+    if not os.path.exists(file_path):
+        for attempt in range(1, max_retries + 1):
+            try:
+                st.info(f"📥 Baixando base de dados (tentativa {attempt}/{max_retries})...")
+                r = requests.get(url, stream=True, timeout=60)
+                r.raise_for_status()
+                with open(file_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                # valida se o arquivo tem tamanho razoável (>1MB)
+                if os.path.getsize(file_path) < 1_000_000:
+                    raise Exception("Arquivo baixado está muito pequeno, possível falha no download")
+                st.success("✅ Base de dados baixada com sucesso!")
+                return
+            except Exception as e:
+                st.warning(f"Tentativa {attempt} falhou: {e}")
+                time.sleep(wait)
+        st.error("❌ Não foi possível baixar a base de dados do GitHub.")
+        st.stop()
+
+# =======================
+# Download + Debug
+# =======================
+download_base()
+
+if not os.path.exists(FILE_PATH):
+    st.error(f"Arquivo {FILE_PATH} não encontrado depois do download.")
+    st.stop()
+else:
+    size_mb = os.path.getsize(FILE_PATH) / 1e6
+    st.write(f"Tamanho do arquivo baixado: {size_mb:.2f} MB")
+    with open(FILE_PATH, "rb") as _f:
+        signature = _f.read(4)
+    st.write("Assinatura do arquivo:", signature)
 
 # =======================
 # MODELO E BASE
 # =======================
-modelo = joblib.load("modelo.pkl")
-df_join = pd.read_parquet("df_join.parquet")
+modelo = joblib.load(os.path.join(BASE_DIR, "modelo.pkl"))
+df_join = pd.read_parquet(FILE_PATH)
 
 # =======================
-# UTIL: barra HTML (uma única linha, sem quebras)
+# UTIL: barra HTML
 # =======================
 def bar_html(pct: float) -> str:
     pct = float(pct)
     width = int(pct * 100)
-    # cores dinâmicas
     if pct >= 0.7:
         color = "#4CAF50"   # verde
     elif pct >= 0.4:
@@ -49,13 +104,13 @@ if st.button("Encontrar perfil ideal"):
     drop_cols = ["situacao_candidato", "target"]
     X = cands_vaga.drop(columns=[c for c in drop_cols if c in cands_vaga.columns], errors="ignore")
 
-    # LabelEncode rápido (só para rodar)
+    # LabelEncode rápido
     X_encoded = X.copy()
     for col in X_encoded.select_dtypes(include=["object"]).columns:
         le = LabelEncoder()
         X_encoded[col] = le.fit_transform(X_encoded[col].astype(str))
 
-    # Alinhar colunas com o modelo
+    # Alinha colunas com o modelo
     X_encoded = X_encoded.reindex(columns=modelo.feature_name_, fill_value=0)
 
     # ===== PREVISÃO =====
@@ -75,8 +130,7 @@ if st.button("Encontrar perfil ideal"):
     )
     df_resultado.insert(0, "Ranking", range(1, len(df_resultado) + 1))
 
-    # ===== TABELA HTML (sem to_html, sem quebras) =====
-    # CSS leve para ocupar a largura e deixar bonito
+    # ===== TABELA HTML =====
     css = (
         "<style>"
         ".ranktbl{width:100%;border-collapse:collapse;}"
@@ -87,7 +141,6 @@ if st.button("Encontrar perfil ideal"):
         "</style>"
     )
 
-    # Cabeçalho
     header = (
         "<tr>"
         "<th class='center'>Ranking</th>"
@@ -97,7 +150,6 @@ if st.button("Encontrar perfil ideal"):
         "</tr>"
     )
 
-    # Linhas
     rows = []
     for _, r in df_resultado.iterrows():
         rows.append(
@@ -111,6 +163,5 @@ if st.button("Encontrar perfil ideal"):
     table_html = f"{css}<table class='ranktbl'>{header}{''.join(rows)}</table>"
 
     st.subheader(f"Melhores candidatos(as) para: {vaga_escolhida}")
-    # IMPORTANTE: renderizar só com markdown; não use st.write(table_html) nem st.code(...)
     st.markdown(table_html, unsafe_allow_html=True)
-    st.caption("Scores previstos pelo algorítimo da Decision (quanto maior, melhor).")
+    st.caption("Scores previstos pelo algoritmo da Decision (quanto maior, melhor).")
