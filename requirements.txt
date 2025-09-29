@@ -1,9 +1,9 @@
-streamlit
-pandas
-numpy
+streamlit==1.37.0
+pandas==2.2.2
+numpy==1.26.4
 scikit-learn==1.6.1
-joblib
-requests
-pyarrow
-lightgbm
-fastparquet
+joblib==1.4.2
+requests==2.32.3
+pyarrow==16.1.0
+lightgbm==4.3.0
+fastparquet==2024.5.0
