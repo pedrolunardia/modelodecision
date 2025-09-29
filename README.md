@@ -3,6 +3,9 @@
 Aplicação Streamlit para apoiar na seleção de candidatos mais bem ranqueados para cada vaga.
 Desenvolvido por Alexandre, Gabriel, Matheus e Pedro como trabalho de conclusão de curso da Pós-Graduação da FIAP.
 
+##
+Notebook com o desenvolvimento do modelo feito no Google Colab está salvo nos nossos releases: https://github.com/pedrolunardia/modelodecision/releases/tag/pipeline
+
 ## 🚀 Como funciona
 - Faz download da base de dados (`df_join.parquet`) hospedada no GitHub Releases.
 - Carrega o modelo treinado (`modelo.pkl`).
@@ -42,3 +45,4 @@ Isso é comportamento esperado do ambiente gratuito, **não um erro do código**
 5. Abra no navegador o link indicado (geralmente http://localhost:8501).
 
 ---
+
